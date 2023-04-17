@@ -14,7 +14,7 @@ TTA = typing.TypeVar("TTA")
 @dataclasses.dataclass
 class BaseNetwork(abc.ABC, typing.Generic[TTA]):
     w3client: web3.Web3
-    accepted: typing.List[TTA]
+    accepted: typing.List[str]
     filter_id: typing.Optional[str] = None
 
     # def __post_init__(self):
