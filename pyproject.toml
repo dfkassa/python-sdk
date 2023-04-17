@@ -1,0 +1,35 @@
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+
+[project]
+name = "dfkassa"
+version = "0.1.0a0"
+description = "DFKassa Python SDK"
+authors = [
+    { name = "0xd0neme", email = "0xd0neme@gmail.com" },
+]
+dependencies = [
+    "web3>=6.2.0",
+    "web3-async-multi-provider>=0.1.0b0",
+]
+requires-python = ">=3.8,<4.0"
+readme = "README.md"
+license = { text = "MIT" }
+keywords = []
+classifiers = []
+
+[project.urls]
+homepage = "https://github.com/dfkassa/python-sdk"
+documentation = "https://dfkassa.github.io/python-sdk/latest/"
+
+[tool.pdm.dev-dependencies]
+dev = [
+    "black>=23.3.0",
+    "isort>=5.12.0",
+    "pre-commit>=3.2.2",
+    "pytest>=7.3.1",
+    "pytest-cov>=4.0.0",
+    "autoflake>=2.1.0",
+]
