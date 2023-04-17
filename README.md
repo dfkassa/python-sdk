@@ -21,6 +21,8 @@ async def callback(
     ctx: dfkassa.NewPaymentContext
 ):
     try:
+        # This call check that tha payment is
+        # for 9 USD (allows 5% price movements difference)
         await ctx.ensure_payment_is_ok(
             price_expected_amount=9,
             price_slippage_tolerance=0.05
