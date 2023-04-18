@@ -4,4 +4,4 @@ from .context import (NewPaymentArgs, NewPaymentContext, NewPaymentTip,
 from .error import SlippageIsToHighError, TokenIsNotAcceptedError
 from .networks import *
 from .settings import DFKassaWatcherSettings
-from .url_builder import build_accept_param
+from .url_builder import build_accept_param, build_accept_param_for_health_nodes
