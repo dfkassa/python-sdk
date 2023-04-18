@@ -2,7 +2,8 @@ import asyncio
 import dataclasses
 import typing
 
-import web3
+import web3._utils.filters  # noqa
+import web3.contract
 
 from dfkassa.watcher.context import (NewPaymentArgs, NewPaymentContext,
                                      NewPaymentTip)
@@ -18,6 +19,9 @@ class DFKassaWatcherSettings(typing.Generic[TE]):
     networks: typing.List[BaseNetwork]
     extra: typing.Optional[TE] = None
     poll_interval: int = 5
+    on_filter_attaching: typing.Optional[
+        typing.Callable[[BaseNetwork, web3._utils.filters.AsyncFilter], typing.Awaitable[typing.Any]]
+    ] = None
 
     async def _run_coroutine_watching_for_network(
         self,
@@ -44,6 +48,8 @@ class DFKassaWatcherSettings(typing.Generic[TE]):
             events_filter = await network.w3client.eth.filter(
                 filter_id=network.filter_id
             )
+
+        await self.on_filter_attaching(network, events_filter)
 
         while True:
             new_entries = await events_filter.get_new_entries()

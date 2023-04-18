@@ -29,7 +29,7 @@ async def callback(
             price_slippage_tolerance=0.05
         )
     except dfkassa.SlippageIsToHighError:
-        print("Price are changed, payment USD value is too low")
+        print("Price is changed, payment USD value is too low")
     except dfkassa.TokenIsNotAcceptedError:
         print("This token should not be accepted, user added it by himself")
     else:
@@ -60,6 +60,10 @@ async def main():
                 ]
             )
         ]
+    )
+    print(
+        "Redirect user with this param",
+        dfkassa.build_accept_param(watcher_settings.networks)
     )
     await watcher_settings.coroutine_run_watching()
 
