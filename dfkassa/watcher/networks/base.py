@@ -3,6 +3,7 @@ import dataclasses
 import typing
 
 import web3
+import web3.types
 
 # TypeVar Tokens Accepted
 import dfkassa.constants
@@ -16,6 +17,7 @@ class BaseNetwork(abc.ABC, typing.Generic[TTA]):
     w3client: web3.Web3
     accepted: typing.List[str]
     filter_id: typing.Optional[str] = None
+    from_block: web3.types.BlockIdentifier = "latest"
 
     # def __post_init__(self):
     #     # Validate generic args?
