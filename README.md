@@ -45,7 +45,12 @@ async def callback(
 
 async def from_block_shifted_callback(network, block_number):
     # Save the block number you then should start with
-    print("from_block updated for chain", network.chain_id, ":", block_number)
+    print(
+        "from_block updated for chain",
+        network.chain_id,
+        ":",
+        block_number
+       )
 
 
 async def main():
@@ -63,7 +68,7 @@ async def main():
                     dfkassa.GoerliTestnetToken.TERC20
                 ],
                 # Do not forget to save latest from_block
-                # number for specific chain from callback and it here
+                # number for specific chain from callback and add it here
                 # from_block=<some number>
             ),
         ],

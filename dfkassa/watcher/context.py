@@ -68,9 +68,11 @@ class NewPaymentContext(typing.Generic[TE]):
             abi=dfkassa.constants.ERC20_ABI,
         )
         # We cannot use asyncio.gather with wss nodes
-        symbol = await erc20.functions.symbol().call()
-        name = await erc20.functions.name().call()
-        decimals = await erc20.functions.decimals().call()
+        symbol, name, decimals = await asyncio.gather(
+            erc20.functions.symbol().call(),
+            erc20.functions.name().call(),
+            erc20.functions.decimals().call()
+        )
         return Token(symbol=symbol, name=name, decimals=decimals)
 
     async def fetch_payment_as_usd_e2(self) -> PaymentAsUSD:
