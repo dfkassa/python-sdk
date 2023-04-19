@@ -24,7 +24,6 @@ class DFKassaWatcherSettings(typing.Generic[TE]):
     ] = None
     merchant_address: typing.Optional[str] = None
 
-
     async def _run_coroutine_watching_for_network(
         self,
         network: BaseNetwork,
@@ -44,7 +43,7 @@ class DFKassaWatcherSettings(typing.Generic[TE]):
 
         _block_number = await network.w3client.eth.block_number  # noqa
         events_filter = await dfkassa.events.NewPayment.create_filter(
-            fromBlock=_block_number, argument_filters=(
+            fromBlock=network.from_block or _block_number, argument_filters=(
                 {"merchant": self.merchant_address}
                 if self.merchant_address is None
                 else {}
