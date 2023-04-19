@@ -3,7 +3,7 @@ import dataclasses
 import typing
 
 import web3._utils.filters  # noqa
-import web3.contract
+import web3.logs
 import web3.types
 
 from dfkassa.watcher.context import (NewPaymentArgs, NewPaymentContext,
@@ -62,8 +62,11 @@ class DFKassaWatcherSettings(typing.Generic[TE]):
                 receipt = await network.w3client.eth.wait_for_transaction_receipt(
                     raw_event["transactionHash"]
                 )
-                all_events = dfkassa.events.NewPayment().process_receipt(receipt)
-                event = all_events[0]
+                all_events = dfkassa.events.NewPayment().process_receipt(
+                    receipt,
+                    errors=web3.logs.DISCARD  # Ignore ERC20 transfers
+                )
+                event = all_events[-1]
                 payment_args = NewPaymentArgs(
                     amount=event["args"]["amount"],
                     payload=event["args"]["payload"],
