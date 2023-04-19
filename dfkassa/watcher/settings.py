@@ -24,6 +24,7 @@ class DFKassaWatcherSettings(typing.Generic[TE]):
     ] = None
     merchant_address: typing.Optional[str] = None
 
+
     async def _run_coroutine_watching_for_network(
         self,
         network: BaseNetwork,
@@ -41,23 +42,36 @@ class DFKassaWatcherSettings(typing.Generic[TE]):
             abi=network.oracle_contract_abi,
         )
 
-        if network.filter_id is None:
-            events_filter = await dfkassa.events.NewPayment.create_filter(
-                fromBlock=network.from_block, argument_filters=(
-                    {"merchant": self.merchant_address}
-                    if self.merchant_address is None
-                    else {}
-                )
+        _block_number = await network.w3client.eth.block_number  # noqa
+        events_filter = await dfkassa.events.NewPayment.create_filter(
+            fromBlock=_block_number, argument_filters=(
+                {"merchant": self.merchant_address}
+                if self.merchant_address is None
+                else {}
             )
-        else:
-            events_filter = await network.w3client.eth.filter(
-                filter_id=network.filter_id
-            )
-
+        )
         await self.on_filter_attaching(network, events_filter)
 
         while True:
-            new_entries = await events_filter.get_new_entries()
+            # Sometime nodes are clearing filters,
+            # so that's why we renew it sometimes
+            try:
+                new_entries = await events_filter.get_new_entries()
+            except ValueError as err:
+                if err.args[0]["message"] == "filter not found":
+                    events_filter = await dfkassa.events.NewPayment.create_filter(
+                        fromBlock=_block_number, argument_filters=(
+                            {"merchant": self.merchant_address}
+                            if self.merchant_address is None
+                            else {}
+                        )
+                    )
+                    continue
+
+                # Unknown error
+                else:
+                    break
+
             for raw_event in new_entries:
                 receipt = await network.w3client.eth.wait_for_transaction_receipt(
                     raw_event["transactionHash"]
@@ -91,6 +105,10 @@ class DFKassaWatcherSettings(typing.Generic[TE]):
                     watcher_settings=self,
                 )
                 asyncio.create_task(self.callback(ctx))
+
+                # If filters will be cleared, we should
+                # start from the next block of the last handled payment's block
+                _block_number = receipt["blockNumber"] + 1
 
             await asyncio.sleep(self.poll_interval)
 
