@@ -21,15 +21,12 @@ async def callback(
     ctx: dfkassa.NewPaymentContext
 ):
     try:
-        # This call check that tha payment is
-        # for 9 USD (allows 5% price movements difference)
-        # and used token is what you want to accept
         await ctx.ensure_payment_is_ok(
-            price_expected_amount=9,
+            price_expected_amount=0.1,
             price_slippage_tolerance=0.05
         )
     except dfkassa.SlippageIsToHighError:
-        print("Price is changed, payment USD value is too low")
+        print("Price are changed, payment USD value is too low")
     except dfkassa.TokenIsNotAcceptedError:
         print("This token should not be accepted, user added it by himself")
     else:
@@ -41,30 +38,38 @@ async def callback(
             f"Amount: {ctx.args.amount / 10 ** payment_token.decimals}",
             f"Token: {payment_token.symbol}",
             f"Payload: {ctx.args.payload}",
+            f"Block: {ctx.receipt['blockNumber']}",
             sep="\n"
         )
 
 
+async def from_block_shifted_callback(network, block_number):
+    # Save the block number you then should start with
+    print("from_block updated for chain", network.chain_id, ":", block_number)
+
+
 async def main():
     watcher_settings = dfkassa.DFKassaWatcherSettings(
-        merchant_address="0xF621E6645BDE67bd3BDEcFA9A674Ad5e7EDad756",
+        merchant_address="0x13BCAC23aC6916a348E2E61f0aCa7Fb3713b058A",
         callback=callback,
         networks=[
             dfkassa.GoerliTestnetNetwork(
-                w3client=dfkassa.w3_from_wss_urls(
-                    "wss://some-wss-url...",
-                    "wss://another-wss-url...",
+                w3client=dfkassa.w3_from_https_urls(
+                    "https://rpc.ankr.com/eth_goerli",
+                    "https://rpc.goerli.eth.gateway.fm"
                 ),
                 accepted=[
                     dfkassa.GoerliTestnetToken.ETH,
-                ]
-            )
-        ]
+                    dfkassa.GoerliTestnetToken.TERC20
+                ],
+                # Do not forget to save latest from_block
+                # number for specific chain from callback and it here
+                # from_block=<some number>
+            ),
+        ],
+        on_block_number_shifted=from_block_shifted_callback
     )
-    print(
-        "Redirect user with this param",
-        dfkassa.build_accept_param(watcher_settings.networks)
-    )
+    print(await dfkassa.build_accept_param_for_health_nodes(watcher_settings.networks))
     await watcher_settings.coroutine_run_watching()
 
 
@@ -77,6 +82,7 @@ USD: 8.99
 Amount: 0.004324823042657171
 Token: ETH
 Payload: 0
+Block: 864532
 ```
 
 # Installation

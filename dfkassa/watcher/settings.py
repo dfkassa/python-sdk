@@ -19,9 +19,10 @@ class DFKassaWatcherSettings(typing.Generic[TE]):
     networks: typing.List[BaseNetwork]
     extra: typing.Optional[TE] = None
     poll_interval: int = 5
-    on_filter_attaching: typing.Optional[
-        typing.Callable[[BaseNetwork, web3._utils.filters.AsyncFilter], typing.Awaitable[typing.Any]]
-    ] = None
+    on_block_number_shifted: typing.Optional[typing.Callable[
+        [BaseNetwork, int],
+        typing.Awaitable[typing.Any]
+    ]] = None
     merchant_address: typing.Optional[str] = None
 
     async def _run_coroutine_watching_for_network(
@@ -41,37 +42,23 @@ class DFKassaWatcherSettings(typing.Generic[TE]):
             abi=network.oracle_contract_abi,
         )
 
-        _block_number = await network.w3client.eth.block_number  # noqa
-        events_filter = await dfkassa.events.NewPayment.create_filter(
-            fromBlock=network.from_block or _block_number, argument_filters=(
-                {"merchant": self.merchant_address}
-                if self.merchant_address is None
-                else {}
-            )
-        )
-        await self.on_filter_attaching(network, events_filter)
+        _from_block_number: int
+        # If None, use latest
+        if network.from_block is None:
+            _from_block_number = await network.w3client.eth.block_number  # noqa
+        else:
+            _from_block_number = network.from_block
 
         while True:
-            # Sometime nodes are clearing filters,
-            # so that's why we renew it sometimes
-            try:
-                new_entries = await events_filter.get_new_entries()
-            except ValueError as err:
-                if err.args[0]["message"] == "filter not found":
-                    events_filter = await dfkassa.events.NewPayment.create_filter(
-                        fromBlock=_block_number, argument_filters=(
-                            {"merchant": self.merchant_address}
-                            if self.merchant_address is None
-                            else {}
-                        )
-                    )
-                    continue
+            _newest_block_number = await network.w3client.eth.block_number  # noqa
+            entries = await dfkassa.events.NewPayment.get_logs(
+                argument_filters={},
+                fromBlock=_from_block_number,
+                toBlock=_newest_block_number,
+            )
 
-                # Unknown error
-                else:
-                    raise err
-
-            for raw_event in new_entries:
+            handle_payment_tasks = []
+            for raw_event in entries:
                 receipt = await network.w3client.eth.wait_for_transaction_receipt(
                     raw_event["transactionHash"]
                 )
@@ -103,13 +90,24 @@ class DFKassaWatcherSettings(typing.Generic[TE]):
                     network=network,
                     watcher_settings=self,
                 )
-                asyncio.create_task(self.callback(ctx))
+                handle_payment_tasks.append(asyncio.create_task(self.callback(ctx)))
 
-                # If filters will be cleared, we should
-                # start from the next block of the last handled payment's block
-                _block_number = receipt["blockNumber"] + 1
+            await asyncio.gather(*handle_payment_tasks)
+
+            # Shift fromBlock to tha latest checked
+            _from_block_number = _newest_block_number + 1
+
+            # When all payments are processed,
+            # call a callback to notify about shifting
+            if self.on_block_number_shifted is not None:
+                await self.on_block_number_shifted(network, _from_block_number)
 
             await asyncio.sleep(self.poll_interval)
+            _newest_block_number = await network.w3client.eth.block_number  # noqa
+            # This prevents end < start (we shifted _from_block_number to 1 before)
+            while _newest_block_number < _from_block_number:
+                await asyncio.sleep(self.poll_interval)
+                _newest_block_number = await network.w3client.eth.block_number  # noqa
 
     async def coroutine_run_watching(self) -> typing.NoReturn:
         tasks = []
