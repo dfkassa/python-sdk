@@ -70,7 +70,7 @@ class DFKassaWatcherSettings(typing.Generic[TE]):
 
                 # Unknown error
                 else:
-                    break
+                    raise err
 
             for raw_event in new_entries:
                 receipt = await network.w3client.eth.wait_for_transaction_receipt(
