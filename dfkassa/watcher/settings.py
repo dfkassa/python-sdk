@@ -4,6 +4,7 @@ import typing
 
 import web3._utils.filters  # noqa
 import web3.contract
+import web3.types
 
 from dfkassa.watcher.context import (NewPaymentArgs, NewPaymentContext,
                                      NewPaymentTip)
@@ -14,7 +15,6 @@ TE = typing.TypeVar("TE")
 
 @dataclasses.dataclass
 class DFKassaWatcherSettings(typing.Generic[TE]):
-    merchant_address: str
     callback: typing.Callable[[NewPaymentContext[TE]], typing.Any]
     networks: typing.List[BaseNetwork]
     extra: typing.Optional[TE] = None
@@ -22,6 +22,8 @@ class DFKassaWatcherSettings(typing.Generic[TE]):
     on_filter_attaching: typing.Optional[
         typing.Callable[[BaseNetwork, web3._utils.filters.AsyncFilter], typing.Awaitable[typing.Any]]
     ] = None
+    merchant_address: typing.Optional[str] = None
+    from_block: web3.types.BlockIdentifier = "latest"
 
     async def _run_coroutine_watching_for_network(
         self,
@@ -42,7 +44,11 @@ class DFKassaWatcherSettings(typing.Generic[TE]):
 
         if network.filter_id is None:
             events_filter = await dfkassa.events.NewPayment.create_filter(
-                fromBlock="latest", argument_filters={"merchant": self.merchant_address}
+                fromBlock="latest", argument_filters=(
+                    {"merchant": self.merchant_address}
+                    if self.merchant_address is None
+                    else {}
+                )
             )
         else:
             events_filter = await network.w3client.eth.filter(
