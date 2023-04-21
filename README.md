@@ -64,6 +64,7 @@ async def main():
         callback=callback,
         networks=[
             dfkassa.GoerliTestnetNetwork(
+                # Find URLs at https://chainlist.org
                 w3client=dfkassa.w3_from_https_urls(
                     "https://rpc.ankr.com/eth_goerli",
                     "https://rpc.goerli.eth.gateway.fm"
