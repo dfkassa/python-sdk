@@ -20,6 +20,9 @@ import dfkassa
 async def callback(
     ctx: dfkassa.NewPaymentContext
 ):
+    # We recommend you to save transaction hash
+    # (ctx.receipt["transactionHash"])
+    # to prevent double receiveing
     try:
         await ctx.ensure_payment_is_ok(
             price_expected_amount=0.1,
@@ -44,13 +47,15 @@ async def callback(
 
 
 async def from_block_shifted_callback(network, block_number):
-    # Save the block number you then should start with
+    # Save the block number you then should start with.
+    # This block number integer will used in main()
+    # for other runs
     print(
         "from_block updated for chain",
         network.chain_id,
         ":",
         block_number
-       )
+    )
 
 
 async def main():
